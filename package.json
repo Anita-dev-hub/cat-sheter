@@ -1,0 +1,21 @@
+{
+  "name": "cat-sheter",
+  "version": "1.0.0",
+  "description": "Simple cat shelter management system with Node.js",
+  "main": "index.js",
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Anita-dev-hub/cat-sheter.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Anita-dev-hub/cat-sheter/issues"
+  },
+  "homepage": "https://github.com/Anita-dev-hub/cat-sheter#readme"
+}
