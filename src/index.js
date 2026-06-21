@@ -5,7 +5,6 @@ import { addBreed, readBreeds } from './breedService.js';
 
 const server = http.createServer(async (req, res) => {
     console.log(readBreeds());
-
     if (req.method === 'POST' && req.url === '/cats/add-breed') {
             let body = '';
 
@@ -13,13 +12,14 @@ const server = http.createServer(async (req, res) => {
                 body += chunk;
             });
 
-        req.on('end', async() => {
+        req.on('end', async () => {
             const formData = new URLSearchParams(body);
             const breedName = formData.get('breed');
             addBreed(breedName);
     });
 
-    return res.end();
+    //Redirect to the home page after adding the breed
+    return res.writeHead(302, { 'Location': '/' }).end();
 
 }
 
