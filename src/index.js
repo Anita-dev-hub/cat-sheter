@@ -1,27 +1,34 @@
 import http from 'http';
 import fs from 'fs/promises';
 import cats from './js/cats.js';
+import { addCat, readCats } from './catService.js';
 import { addBreed, readBreeds } from './breedService.js';
 
 const server = http.createServer(async (req, res) => {
-    console.log(readBreeds());
+    console.log(readCats());
     if (req.method === 'POST' && req.url === '/cats/add-breed') {
-            let body = '';
-
-            req.on('data', (chunk) => {
-                body += chunk;
-            });
-
-        req.on('end', async () => {
-            const formData = new URLSearchParams(body);
-            const breedName = formData.get('breed');
-            addBreed(breedName);
-    });
+        const bodyFormData = await readBodyFormData(req);
+        const breedName = bodyFormData.get('breed');
+        addBreed(breedName);
 
     //Redirect to the home page after adding the breed
     return res.writeHead(302, { 'Location': '/' }).end();
 
-}
+    }
+
+    if (req.method === 'POST' && req.url === '/cats/add-cat') {
+            const bodyFormData = await readBodyFormData(req);
+            const newCat = {
+                name: bodyFormData.get('name'),
+                breed: bodyFormData.get('breed'),
+                description: bodyFormData.get('description'),
+                imageUrl: bodyFormData.get('imageUrl')
+            };
+
+            addCat(newCat);
+
+            return res.writeHead(302, { 'Location': '/' }).end();
+        }
 
     if (req.url === '/styles/site.css') {
         const cssContent = await fs.readFile('./src/styles/site.css', 'utf-8');
@@ -52,7 +59,7 @@ const server = http.createServer(async (req, res) => {
             htmlContent = await fs.readFile('./src/views/addBreed.html', 'utf-8');
             break;
         case '/cats/add-cat':
-            htmlContent = await fs.readFile('./src/views/addCat.html', 'utf-8');
+            htmlContent = await renderAddCatPage();
             break;
         default:
             htmlContent = await fs.readFile('./src/views/notFound.html', 'utf-8');
@@ -62,10 +69,6 @@ const server = http.createServer(async (req, res) => {
     res.write(htmlContent);
 
     res.end();
-});
-
-server.listen(3000, () => {
-    console.log('Server is listening on http://localhost:3000');
 });
 
 async function renderHomePage() {
@@ -85,9 +88,41 @@ async function renderHomePage() {
         </li>
     `;
 
+    const cats = await readCats();
     const catsContent = `<ul>${cats.map(cat => catTemplate(cat)).join('\n')}</ul>`;
 
     const result = htmlContent.replace('{{cats}}', catsContent);
 
     return result;
 }
+
+async function renderAddCatPage() {
+    const htmlContent = await fs.readFile('./src/views/addCat.html', 'utf-8');
+   
+    const breedOptions = readBreeds().map(breed => `<option value="${breed.id}">${breed.name}</option>`).join('\n');
+    const result = htmlContent.replace('{{breedOptions}}', breedOptions);
+
+    return result;
+}
+
+function readBodyFormData(req) {
+    return new Promise((resolve, reject) => {
+        let body = '';
+
+        req.on('data', (chunk) => {
+            body += chunk;
+        });
+
+        req.on('end', () => {
+            const formData = new URLSearchParams(body);
+            resolve(formData);
+        });
+        // req.on('error', (err) => {
+        //     reject(err);
+        // });
+    });
+}
+
+server.listen(3000, () => {
+    console.log('Server is listening on http://localhost:3000');
+});
