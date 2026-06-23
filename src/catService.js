@@ -17,3 +17,6 @@ export function addCat(catData) {
     
 }
 
+export function getCatById(catId) {
+    return cats.find(cat => cat.id === catId);
+}
