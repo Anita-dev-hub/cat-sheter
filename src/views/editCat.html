@@ -22,17 +22,17 @@
         <h1>Cat Shelter</h1>
     </header>
     <main>
-        <form method="POST" class="cat-form" enctype="multipart/form-data">
+        <form method="POST" class="cat-form" >
             <h2>Edit Cat</h2>
             <label for="name">Name</label>
             <input type="text" name="name" id="name" value="{{name}}">
             <label for="description">Description</label>
             <textarea name="description" id="description">{{description}}</textarea>
             <label for="image">Image</label>
-            <input type="file" name="imageUrl" id="image" value="{{imageUrl}}">
+            <input type="text" name="imageUrl" id="image" value="{{imageUrl}}">
             <label for="group">Breed</label>
-            <select id="group">
-                <option value="Fluffy Cat">Fluffy Cat</option>
+            <select id="group" name="breed">
+                {{breedOptions}}
             </select>
             <button>Edit Cat</button>
         </form>

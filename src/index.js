@@ -1,6 +1,6 @@
 import http from 'http';
 import fs from 'fs/promises';
-import { addCat, readCats, getCatById } from './catService.js';
+import { addCat, readCats, getCatById, editCat } from './catService.js';
 import { addBreed, readBreeds } from './breedService.js';
 
 const server = http.createServer(async (req, res) => {
@@ -28,6 +28,15 @@ const server = http.createServer(async (req, res) => {
 
             return res.writeHead(302, { 'Location': '/' }).end();
         }
+
+    if(req.method === 'POST' && req.url.startsWith('/cats/edit-cat/')) {
+        const catId = req.url.split('/').pop();
+        const bodyFormData = await readBodyFormData(req);
+
+        editCat(catId, Object.fromEntries(bodyFormData.entries()));
+
+        return res.writeHead(302, { 'Location': '/' }).end();
+    }
 
     if (req.url === '/styles/site.css') {
         const cssContent = await fs.readFile('./src/styles/site.css', 'utf-8');
@@ -85,7 +94,7 @@ async function renderHomePage() {
         </li>
     `;
 
-    const cats = readCats();
+    const cats = await readCats();
     const catsContent = `<ul>${cats.map(cat => catTemplate(cat)).join('\n')}</ul>`;
 
     const result = htmlContent.replace('{{cats}}', catsContent);
@@ -96,8 +105,7 @@ async function renderHomePage() {
 async function renderAddCatPage() {
     const htmlContent = await fs.readFile('./src/views/addCat.html', 'utf-8');
    
-    const breedOptions = readBreeds().map(breed => `<option value="${breed.id}">${breed.name}</option>`).join('\n');
-    const result = htmlContent.replace('{{breedOptions}}', breedOptions);
+    const result = htmlContent.replace('{{breedOptions}}', renderBreedOptions());
 
     return result;
 }
@@ -110,11 +118,19 @@ async function renderEditCatPage(catId) {
         return renderNotFoundPage();
     }
     const htmlContent = await fs.readFile('./src/views/editCat.html', 'utf-8');
-    const result = htmlContent.replace('{{name}}', cat.name)
+    const result = htmlContent
+    .replace('{{name}}', cat.name)
     .replace('{{description}}', cat.description)
-    .replace('{{imageUrl}}', cat.imageUrl);
+    .replace('{{imageUrl}}', cat.imageUrl)
+    .replace('{{breedOptions}}', renderBreedOptions(cat.breed));
 
     return result;
+}
+
+function renderBreedOptions(selectedBreed) {
+    const breeds = readBreeds();
+
+    return breeds.map(breed => `<option value="${breed.id}"${breed.name === selectedBreed ? ' selected' : ''}>${breed.name}</option>`).join('\n');
 }
 
 async function renderNotFoundPage() {
@@ -133,9 +149,7 @@ function readBodyFormData(req) {
             const formData = new URLSearchParams(body);
             resolve(formData);
         });
-        // req.on('error', (err) => {
-        //     reject(err);
-        // });
+
     });
 }
 
