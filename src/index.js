@@ -1,7 +1,7 @@
 import http from 'http';
 import fs from 'fs/promises';
-import { addCat, readCats, getCatById, editCat } from './catService.js';
-import { addBreed, readBreeds } from './breedService.js';
+import { addCat, readCats, getCatById, editCat, deleteCat } from './catService.js';
+import { addBreed, readBreeds, getBreedByName, getBreedById } from './breedService.js';
 
 const server = http.createServer(async (req, res) => {
     console.log(readCats());
@@ -38,6 +38,11 @@ const server = http.createServer(async (req, res) => {
         return res.writeHead(302, { 'Location': '/' }).end();
     }
 
+    if(req.method === 'POST' && req.url.startsWith('/cats/new-home/')) {
+        const catId = req.url.split('/').pop();
+        const bodyFormData = await readBodyFormData(req);
+    }
+
     if (req.url === '/styles/site.css') {
         const cssContent = await fs.readFile('./src/styles/site.css', 'utf-8');
 
@@ -61,6 +66,11 @@ const server = http.createServer(async (req, res) => {
 
     if(req.url === '/') {
         htmlContent = await renderHomePage();
+    } else if(req.url.startsWith('/search')) {
+        const urlParams = new URLSearchParams(req.url.split('?')[1]);
+        const name = urlParams.get('name');
+
+        htmlContent = await renderHomePage({ name });
     } else if(req.url === '/cats/add-breed') {
         htmlContent = await fs.readFile('./src/views/addBreed.html', 'utf-8');
     } else if(req.url === '/cats/add-cat') {
@@ -68,7 +78,10 @@ const server = http.createServer(async (req, res) => {
     } else if(req.url.startsWith('/cats/edit-cat/')) {
         const catId = req.url.split('/').pop();
         htmlContent = await renderEditCatPage(catId);
-    } else {
+    } else if(req.url.startsWith('/cats/new-home/')) {
+        const catId = req.url.split('/').pop();
+        htmlContent = await renderNewHomePage(catId);
+ } else {
         htmlContent = await renderNotFoundPage();
     }
 
@@ -77,25 +90,26 @@ const server = http.createServer(async (req, res) => {
     res.end();
 });
 
-async function renderHomePage() {
+async function renderHomePage(filter = {}) {
     const htmlContent = await fs.readFile('./src/views/home/index.html', 'utf-8');
 
     const catTemplate = (cat) => `
     
       <li>
-                    <img src="${cat.imageUrl}" alt="${cat.name}">
-                    <h3>${cat.name}</h3>
-                    <p><span>Breed: </span>${cat.breed}</p>
-                    <p><span>Description: </span>${cat.description}</p>
-                    <ul class="buttons">
-                        <li class="btn edit"><a href="/cats/edit-cat/${cat.id}">Change Info</a></li>
-                        <li class="btn delete"><a href="">New Home</a></li>
-                    </ul>
+            <img src="${cat.imageUrl}" alt="${cat.name}">
+            <h3>${cat.name}</h3>
+            <p><span>Breed: </span>${cat.breed}</p>
+            <p><span>Description: </span>${cat.description}</p>
+            <ul class="buttons">
+                <li class="btn edit"><a href="/cats/edit-cat/${cat.id}">Change Info</a></li>
+                <li class="btn delete"><a href="/cats/new-home/${cat.id}">New Home</a></li>
+            </ul>
         </li>
     `;
 
-    const cats = await readCats();
+    const cats = readCats(filter);
     const catsContent = `<ul>${cats.map(cat => catTemplate(cat)).join('\n')}</ul>`;
+
 
     const result = htmlContent.replace('{{cats}}', catsContent);
 
@@ -123,6 +137,25 @@ async function renderEditCatPage(catId) {
     .replace('{{description}}', cat.description)
     .replace('{{imageUrl}}', cat.imageUrl)
     .replace('{{breedOptions}}', renderBreedOptions(cat.breed));
+
+    return result;
+}
+
+async function renderNewHomePage(catId) {
+    const cat = getCatById(catId);
+    const breed = getBreedById(cat.breed);
+
+    if(!cat) {
+        return renderNotFoundPage();
+    }
+
+    const htmlContent = await fs.readFile('./src/views/catShelter.html', 'utf-8');
+    const result = htmlContent
+        .replaceAll('{{name}}', cat.name)
+        .replace('{{description}}', cat.description)
+        .replace('{{imageUrl}}', cat.imageUrl)
+        .replace('{{breedId}}', breed.id)
+        .replace('{{breedName}}', breed.name);
 
     return result;
 }
